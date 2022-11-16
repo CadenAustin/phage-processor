@@ -1,9 +1,8 @@
 import argparse
-from typing import Any, Annotated
+from typing import Any
 import pandas as pd
 import re
 from dataclasses import dataclass, field
-from pandas_dataclasses import AsFrame, Data
 from geopy import distance as ds
 
 def get_item(li, index, default=None):
@@ -18,7 +17,7 @@ def convert(tude):
     return multiplier * float(get_item(re.match("\d+\.\d+", tude), 0, 0))
 
 @dataclass(init=True)
-class phage(AsFrame):
+class phage():
     year: int
     name: str
     coords: str
