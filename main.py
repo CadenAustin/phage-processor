@@ -2,14 +2,27 @@ import argparse
 from typing import Any
 import pandas as pd
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from geopy import distance as ds
+
+def convert(tude):
+    tude = tude.strip()
+    multiplier = 1 if tude.find("N")!=-1 or tude.find("E")!=-1 else -1
+    return multiplier * float(re.match("\d+\.\d+", tude)[0])
+
+def get_item(li, index, default=None):
+    try:
+        return li[index]
+    except IndexError:
+        return default
 
 @dataclass(init=True)
 class phage:
     year: int
     name: str
-    lat: float
-    long: float
+    coords: str
+    distance: str = field(init=False)
+    location: str | None
     host: str
     azureus: Any = None
     coelicolor: Any = None
@@ -18,28 +31,31 @@ class phage:
     mirabilis: Any = None
     scabiei: Any = None
 
-    """def __init__(self, year, name, coords, host, azureus, coelicolor, distatochomrogenes, griseus, mirabilis, scabiei):
-        self.year = year
-        self.name = name
-        self.coords = coords
-        self.host = host
-        self.azureus = azureus
-        self.coelicolor = coelicolor
-        self.distatochomrogenes = distatochomrogenes
-        self.griseus = griseus
-        self.mirabilis = mirabilis
-        self.scabiei = scabiei"""
+    def __post_init__(self):
+        umbc_md = (39.2434636, -76.7139453)
+        coord_location = tuple(map(convert, self.coords.split(",")))
+
+        self.distance = (f'{ds.distance(umbc_md, coord_location).miles:.2f} miles')
+        
+
 
 def phage_from_df_row(year, row):
-    print(row["Phage Name"])
-    lat = 0
-    long = 0
-    host = "Streptomyces"
-    phage(year, row["Phage Name"], lat, long, host)
+    location = get_item(row.filter(regex=re.compile("location", re.IGNORECASE)), 0)
+    gps_coords = get_item(row.filter(regex=re.compile("GPS Coordinate", re.IGNORECASE)), 0)
+    host = "Streptomyces" #To-do
+
+    azureus = get_item(row.filter(regex=re.compile("azureus", re.IGNORECASE)), 0)
+    coelicolor = get_item(row.filter(regex=re.compile("coelicolor", re.IGNORECASE)), 0)
+    distatochomrogenes = get_item(row.filter(regex=re.compile("diastatochromogenes", re.IGNORECASE)), 0)
+    griseus = get_item(row.filter(regex=re.compile("griseus", re.IGNORECASE)), 0)
+    mirabilis = get_item(row.filter(regex=re.compile("mirabilis", re.IGNORECASE)), 0)
+    scabiei = get_item(row.filter(regex=re.compile("scabiei", re.IGNORECASE)), 0)
+    return phage(year, row["Phage Name"], gps_coords, location, host, azureus, coelicolor, distatochomrogenes, griseus, mirabilis, scabiei)
 
 
 
 def main(args = []):
+    phages = []
     for file in args.inputFiles:
         year = re.search(r"([0-9]{4})", file.name)
         if (year == None): 
@@ -53,8 +69,9 @@ def main(args = []):
         sheet_df.reset_index(inplace=True)
 
         for index, row in sheet_df.iterrows():
-            phage_from_df_row(year, row)
-        print()
+            phages.append(phage_from_df_row(year, row))
+    phage_df = pd.DataFrame(phages)
+    print(phage_df)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
