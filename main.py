@@ -74,7 +74,7 @@ def main(args = []):
     phage_df = pd.DataFrame(phages)
     phage_df.rename(columns={'azureus': "S. azureus SC 2364, NRRL B-2655", 'coelicolor': 'S. coelicolor subsp. coelicolor, NRRL B-2812', 'distatochomrogenes': 'S. diastatochromogenes IFO 3337, NRRL ISP-5449', 'griseus': 'S. griseus subsp. griseus, NRRL B-2682', 'mirabilis': 'S. mirabilis NRRL B-2400', 'scabiei': 'S. scabiei RL-34, ATCC 49173'}, inplace=True)
     writer = pd.ExcelWriter(args.output, engine='xlsxwriter') 
-    cell_format = writer.book.add_format()
+    cell_format = writer.book.add_format({'num_format': "0.00E+00"})
     cell_format.set_align('center')
     phage_df.to_excel(writer, sheet_name='phages', index=False, na_rep='None')
     for column in phage_df:
