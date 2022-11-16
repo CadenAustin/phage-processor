@@ -1,8 +1,9 @@
 import argparse
-from typing import Any
+from typing import Any, Annotated
 import pandas as pd
 import re
 from dataclasses import dataclass, field
+from pandas_dataclasses import AsFrame, Data
 from geopy import distance as ds
 
 def get_item(li, index, default=None):
@@ -17,19 +18,19 @@ def convert(tude):
     return multiplier * float(get_item(re.match("\d+\.\d+", tude), 0, 0))
 
 @dataclass(init=True)
-class phage:
+class phage(AsFrame):
     year: int
     name: str
     coords: str
     distance: str = field(init=False)
     location: str | None
     host: str
-    azureus: Any = None
-    coelicolor: Any = None
     distatochomrogenes: Any = None
     griseus: Any = None
     mirabilis: Any = None
     scabiei: Any = None
+    coelicolor: Any = None
+    azureus: Any = None
 
     def __post_init__(self):
         umbc_md = (39.2434636, -76.7139453)
@@ -51,7 +52,7 @@ def phage_from_df_row(year, row):
     griseus = get_item(row.filter(regex=re.compile("griseus", re.IGNORECASE)), 0)
     mirabilis = get_item(row.filter(regex=re.compile("mirabilis", re.IGNORECASE)), 0)
     scabiei = get_item(row.filter(regex=re.compile("scabiei", re.IGNORECASE)), 0)
-    return phage(year, row["Phage Name"], gps_coords, location, host, azureus, coelicolor, distatochomrogenes, griseus, mirabilis, scabiei)
+    return phage(year=year, name=row["Phage Name"], coords=gps_coords, location=location, host=host, azureus=azureus, coelicolor=coelicolor, distatochomrogenes=distatochomrogenes, griseus=griseus, mirabilis=mirabilis, scabiei=scabiei)
 
 
 
@@ -72,13 +73,15 @@ def main(args = []):
         for index, row in sheet_df.iterrows():
             phages.append(phage_from_df_row(year, row))
     phage_df = pd.DataFrame(phages)
+    phage_df.rename(columns={'azureus': "S. azureus SC 2364, NRRL B-2655", 'coelicolor': 'S. coelicolor subsp. coelicolor, NRRL B-2812', 'distatochomrogenes': 'S. diastatochromogenes IFO 3337, NRRL ISP-5449', 'griseus': 'S. griseus subsp. griseus, NRRL B-2682', 'mirabilis': 'S. mirabilis NRRL B-2400', 'scabiei': 'S. scabiei RL-34, ATCC 49173'}, inplace=True)
     writer = pd.ExcelWriter(args.output, engine='xlsxwriter') 
+    cell_format = writer.book.add_format()
+    cell_format.set_align('center')
     phage_df.to_excel(writer, sheet_name='phages', index=False, na_rep='None')
-
     for column in phage_df:
         column_length = max(phage_df[column].astype(str).map(len).max(), len(column))
         col_idx = phage_df.columns.get_loc(column)
-        writer.sheets['phages'].set_column(col_idx, col_idx, column_length)
+        writer.sheets['phages'].set_column(col_idx, col_idx, column_length, cell_format)
 
     writer.save()
 
