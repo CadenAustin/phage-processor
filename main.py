@@ -5,16 +5,17 @@ import re
 from dataclasses import dataclass, field
 from geopy import distance as ds
 
-def convert(tude):
-    tude = tude.strip()
-    multiplier = 1 if tude.find("N")!=-1 or tude.find("E")!=-1 else -1
-    return multiplier * float(re.match("\d+\.\d+", tude)[0])
-
 def get_item(li, index, default=None):
     try:
         return li[index]
-    except IndexError:
+    except:
         return default
+
+def convert(tude):
+    tude = tude.strip()
+    print(tude, re.match("\d+\.\d+", tude))
+    multiplier = 1 if tude.find("N")!=-1 or tude.find("E")!=-1 else -1
+    return multiplier * float(get_item(re.match("\d+\.\d+", tude), 0, 0))
 
 @dataclass(init=True)
 class phage:
@@ -33,9 +34,11 @@ class phage:
 
     def __post_init__(self):
         umbc_md = (39.2434636, -76.7139453)
-        coord_location = tuple(map(convert, self.coords.split(",")))
-
-        self.distance = (f'{ds.distance(umbc_md, coord_location).miles:.2f} miles')
+        try:
+            coord_location = tuple(map(convert, self.coords.split(",")))
+            self.distance = (f'{ds.distance(umbc_md, coord_location).miles:.2f} miles')
+        except:
+            self.distance = None
         
 
 
@@ -43,7 +46,6 @@ def phage_from_df_row(year, row):
     location = get_item(row.filter(regex=re.compile("location", re.IGNORECASE)), 0)
     gps_coords = get_item(row.filter(regex=re.compile("GPS Coordinate", re.IGNORECASE)), 0)
     host = "Streptomyces" #To-do
-
     azureus = get_item(row.filter(regex=re.compile("azureus", re.IGNORECASE)), 0)
     coelicolor = get_item(row.filter(regex=re.compile("coelicolor", re.IGNORECASE)), 0)
     distatochomrogenes = get_item(row.filter(regex=re.compile("diastatochromogenes", re.IGNORECASE)), 0)
@@ -71,13 +73,21 @@ def main(args = []):
         for index, row in sheet_df.iterrows():
             phages.append(phage_from_df_row(year, row))
     phage_df = pd.DataFrame(phages)
-    print(phage_df)
+    writer = pd.ExcelWriter(args.output, engine='xlsxwriter') 
+    phage_df.to_excel(writer, sheet_name='phages', index=False, na_rep='None')
+
+    for column in phage_df:
+        column_length = max(phage_df[column].astype(str).map(len).max(), len(column))
+        col_idx = phage_df.columns.get_loc(column)
+        writer.sheets['phages'].set_column(col_idx, col_idx, column_length)
+
+    writer.save()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
                     prog = 'phage-processor',
                     description = 'Processes UMBC Phage Excel Records')
     parser.add_argument('inputFiles', type=argparse.FileType('r'), nargs='+')
-    parser.add_argument("-o", "--output", help="Directs the output to a name of your choice")
+    parser.add_argument("-o", "--output", default="master_sheet.xlsx", help="Directs the output to a name of your choice")
     args = parser.parse_args()
     main(args)
