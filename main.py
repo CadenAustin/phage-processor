@@ -13,7 +13,6 @@ def get_item(li, index, default=None):
 
 def convert(tude):
     tude = tude.strip()
-    print(tude, re.match("\d+\.\d+", tude))
     multiplier = 1 if tude.find("N")!=-1 or tude.find("E")!=-1 else -1
     return multiplier * float(get_item(re.match("\d+\.\d+", tude), 0, 0))
 
@@ -45,7 +44,7 @@ class phage:
 def phage_from_df_row(year, row):
     location = get_item(row.filter(regex=re.compile("location", re.IGNORECASE)), 0)
     gps_coords = get_item(row.filter(regex=re.compile("GPS Coordinate", re.IGNORECASE)), 0)
-    host = "Streptomyces" #To-do
+    host = get_item(row.filter(regex=re.compile("host", re.IGNORECASE)), 0) #To-do
     azureus = get_item(row.filter(regex=re.compile("azureus", re.IGNORECASE)), 0)
     coelicolor = get_item(row.filter(regex=re.compile("coelicolor", re.IGNORECASE)), 0)
     distatochomrogenes = get_item(row.filter(regex=re.compile("diastatochromogenes", re.IGNORECASE)), 0)
