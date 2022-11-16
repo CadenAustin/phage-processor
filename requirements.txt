@@ -1,0 +1,4 @@
+geopy==2.3.0
+openpyxl==3.0.10
+pandas==1.5.1
+XlsxWriter==3.0.3
